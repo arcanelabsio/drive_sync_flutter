@@ -99,14 +99,16 @@ final authClient = GoogleAuthClient(await account!.authHeaders);
 
 ### Conflict Resolution
 
-When both local and remote have modified the same file:
+When both local and remote have modified the same file, the library **picks one version** — it does NOT merge content. There is no three-way merge, no content-aware diffing. It compares SHA256 checksums (to detect changes) and `lastModified` timestamps (to pick a winner). This works equally well for JSON, binary, or encrypted files since it never reads file contents.
 
 | Strategy | Behavior |
 |----------|----------|
 | `newerWins` | Most recent `lastModified` wins. Ties go to local. |
-| `localWins` | Always keep the local version. |
-| `remoteWins` | Always keep the remote version. |
+| `localWins` | Always keep the local version (remote is overwritten). |
+| `remoteWins` | Always keep the remote version (local is overwritten). |
 | `askUser` | Skips the file and returns it in `result.unresolvedConflicts` for your UI to handle. |
+
+**Important:** The losing version is overwritten. If you need to preserve both versions, use `askUser` and implement your own merge or backup logic.
 
 ```dart
 final client = DriveSyncClient(
@@ -166,7 +168,8 @@ DriveSyncClient          ← High-level API (sync/push/pull/status)
 
 ### What this library does NOT do
 
-- **No encryption.** Files are transferred as-is. If you need encryption, encrypt before syncing and decrypt after pulling. The library treats file contents as opaque bytes.
+- **No encryption.** Files are transferred as-is. If you need encryption, encrypt before syncing and decrypt after pulling. The library treats file contents as opaque bytes — change detection and conflict resolution work on raw bytes, so encrypted files sync correctly.
+- **No content merging.** Conflict resolution picks one version (local or remote) — it never merges file contents. If both sides changed the same file, one version wins and the other is overwritten.
 - **No authentication.** You must provide an authenticated `http.Client` (e.g., via `google_sign_in`). The library includes `GoogleAuthClient` as a convenience wrapper but does not manage OAuth flows, tokens, or refresh.
 - **No background sync.** Sync is triggered explicitly by your code. No periodic timers, no push notifications, no wake locks.
 - **No partial/resumable uploads.** Files are uploaded/downloaded in full. Not suitable for files larger than ~50MB.
