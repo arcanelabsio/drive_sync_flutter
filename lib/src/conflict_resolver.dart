@@ -18,7 +18,9 @@ class ConflictResolver {
       case ConflictStrategy.newerWins:
         if (conflict.local.lastModified.isAfter(conflict.remote.lastModified)) {
           return SyncConflictResolution.useLocal;
-        } else if (conflict.remote.lastModified.isAfter(conflict.local.lastModified)) {
+        } else if (conflict.remote.lastModified.isAfter(
+          conflict.local.lastModified,
+        )) {
           return SyncConflictResolution.useRemote;
         }
         // Tie: prefer local (device is source of truth for tracking data)

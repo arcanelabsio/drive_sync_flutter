@@ -1,5 +1,3 @@
-/// Data models for drive_sync_flutter.
-
 /// Direction of sync operation.
 enum SyncDirection { push, pull, bidirectional }
 
@@ -26,16 +24,16 @@ class SyncFileEntry {
       );
 
   Map<String, dynamic> toJson() => {
-        'path': path,
-        'sha256': sha256,
-        'lastModified': lastModified.toIso8601String(),
-      };
+    'path': path,
+    'sha256': sha256,
+    'lastModified': lastModified.toIso8601String(),
+  };
 
   factory SyncFileEntry.fromJson(Map<String, dynamic> json) => SyncFileEntry(
-        path: json['path'] as String,
-        sha256: json['sha256'] as String,
-        lastModified: DateTime.parse(json['lastModified'] as String),
-      );
+    path: json['path'] as String,
+    sha256: json['sha256'] as String,
+    lastModified: DateTime.parse(json['lastModified'] as String),
+  );
 
   @override
   bool operator ==(Object other) =>
@@ -45,7 +43,8 @@ class SyncFileEntry {
   int get hashCode => Object.hash(path, sha256);
 
   @override
-  String toString() => 'SyncFileEntry($path, sha256=${sha256.substring(0, 8)}...)';
+  String toString() =>
+      'SyncFileEntry($path, sha256=${sha256.substring(0, 8)}...)';
 }
 
 /// A manifest tracking all synced files and their state.
@@ -55,13 +54,15 @@ class SyncManifest {
 
   const SyncManifest({required this.files, required this.lastSynced});
 
-  factory SyncManifest.empty() =>
-      SyncManifest(files: {}, lastSynced: DateTime.fromMillisecondsSinceEpoch(0));
+  factory SyncManifest.empty() => SyncManifest(
+    files: {},
+    lastSynced: DateTime.fromMillisecondsSinceEpoch(0),
+  );
 
   Map<String, dynamic> toJson() => {
-        'files': files.map((k, v) => MapEntry(k, v.toJson())),
-        'lastSynced': lastSynced.toIso8601String(),
-      };
+    'files': files.map((k, v) => MapEntry(k, v.toJson())),
+    'lastSynced': lastSynced.toIso8601String(),
+  };
 
   factory SyncManifest.fromJson(Map<String, dynamic> json) {
     final filesMap = (json['files'] as Map<String, dynamic>).map(
@@ -88,7 +89,8 @@ class ManifestDiff {
     required this.unchanged,
   });
 
-  bool get hasChanges => added.isNotEmpty || modified.isNotEmpty || deleted.isNotEmpty;
+  bool get hasChanges =>
+      added.isNotEmpty || modified.isNotEmpty || deleted.isNotEmpty;
 
   int get totalChanges => added.length + modified.length + deleted.length;
 }

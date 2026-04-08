@@ -14,7 +14,7 @@
 /// final client = DriveSyncClient(adapter: adapter);
 /// final result = await client.sync(localPath: '/path/to/data');
 /// ```
-library drive_sync_flutter;
+library;
 
 export 'src/models.dart';
 export 'src/drive_adapter.dart';

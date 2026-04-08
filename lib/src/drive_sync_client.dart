@@ -70,7 +70,10 @@ class DriveSyncClient {
   }
 
   /// Save the local manifest after sync.
-  Future<void> _saveLocalManifest(String localPath, SyncManifest manifest) async {
+  Future<void> _saveLocalManifest(
+    String localPath,
+    SyncManifest manifest,
+  ) async {
     final file = File('$localPath/_sync_manifest.json');
     await file.writeAsString(json.encode(manifest.toJson()));
   }
@@ -118,14 +121,16 @@ class DriveSyncClient {
     final remoteFiles = await adapter.listFiles();
 
     final remoteManifest = SyncManifest(
-      files: remoteFiles.map((k, v) => MapEntry(
-            k,
-            SyncFileEntry(
-              path: k,
-              sha256: v.sha256 ?? '',
-              lastModified: v.lastModified,
-            ),
-          )),
+      files: remoteFiles.map(
+        (k, v) => MapEntry(
+          k,
+          SyncFileEntry(
+            path: k,
+            sha256: v.sha256 ?? '',
+            lastModified: v.lastModified,
+          ),
+        ),
+      ),
       lastSynced: DateTime.now(),
     );
 

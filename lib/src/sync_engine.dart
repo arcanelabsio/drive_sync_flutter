@@ -21,8 +21,8 @@ class SyncEngine {
     required this.adapter,
     ManifestDiffer? differ,
     ConflictResolver? resolver,
-  })  : differ = differ ?? ManifestDiffer(),
-        resolver = resolver ?? const ConflictResolver();
+  }) : differ = differ ?? ManifestDiffer(),
+       resolver = resolver ?? const ConflictResolver();
 
   /// Build a remote manifest, computing sha256 by downloading content
   /// when the adapter doesn't provide checksums.
@@ -71,7 +71,8 @@ class SyncEngine {
       // Find files modified on both sides
       for (final path in localManifest.files.keys) {
         final remote = remoteManifest.files[path];
-        if (remote != null && remote.sha256 != localManifest.files[path]!.sha256) {
+        if (remote != null &&
+            remote.sha256 != localManifest.files[path]!.sha256) {
           conflictPaths.add(path);
         }
       }
@@ -109,7 +110,8 @@ class SyncEngine {
     }
 
     // Push: upload files that are local-only (not conflicts, not unchanged)
-    if (direction == SyncDirection.push || direction == SyncDirection.bidirectional) {
+    if (direction == SyncDirection.push ||
+        direction == SyncDirection.bidirectional) {
       final localToRemote = differ.diff(localManifest, remoteManifest);
 
       for (final path in localToRemote.added) {
@@ -137,7 +139,8 @@ class SyncEngine {
     }
 
     // Pull: download files that are remote-only (not conflicts, not unchanged)
-    if (direction == SyncDirection.pull || direction == SyncDirection.bidirectional) {
+    if (direction == SyncDirection.pull ||
+        direction == SyncDirection.bidirectional) {
       final remoteToLocal = differ.diff(remoteManifest, localManifest);
 
       for (final path in remoteToLocal.added) {

@@ -17,7 +17,7 @@ class GoogleAuthClient extends http.BaseClient {
 
   /// Create an auth client from a map of headers (typically from `account.authHeaders`).
   GoogleAuthClient(this._headers, {http.Client? inner})
-      : _inner = inner ?? http.Client();
+    : _inner = inner ?? http.Client();
 
   /// Create an auth client from an async headers future.
   static Future<GoogleAuthClient> fromAccount(

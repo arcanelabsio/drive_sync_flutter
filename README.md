@@ -154,6 +154,48 @@ DriveSyncClient          ← High-level API (sync/push/pull/status)
 
 **Manifest**: A JSON file (`.sync_manifest.json`) stored alongside your local data tracks `{path, sha256, lastModified}` for each synced file. Only files that changed since the last sync are transferred.
 
+## Scope and Boundaries
+
+### What this library does
+
+- Syncs **files** (any format: JSON, YAML, images, binary, encrypted blobs) between a local directory and a Google Drive folder
+- Detects changes via SHA256 checksums — only transfers files that actually differ
+- Resolves conflicts when the same file is modified locally and remotely
+- Creates nested folder hierarchies on Drive automatically
+- Tracks sync state via a local manifest file (`.sync_manifest.json`)
+
+### What this library does NOT do
+
+- **No encryption.** Files are transferred as-is. If you need encryption, encrypt before syncing and decrypt after pulling. The library treats file contents as opaque bytes.
+- **No authentication.** You must provide an authenticated `http.Client` (e.g., via `google_sign_in`). The library includes `GoogleAuthClient` as a convenience wrapper but does not manage OAuth flows, tokens, or refresh.
+- **No background sync.** Sync is triggered explicitly by your code. No periodic timers, no push notifications, no wake locks.
+- **No partial/resumable uploads.** Files are uploaded/downloaded in full. Not suitable for files larger than ~50MB.
+- **No file locking or concurrency control.** Designed for single-device use. If multiple devices sync the same folder simultaneously, conflicts are resolved by strategy but race conditions are possible.
+- **No subfolder recursion.** Syncs files in a single Drive folder (flat). Nested local directories are not traversed — you manage one folder per `DriveSyncClient`.
+
+### Developer responsibility
+
+| Concern | Who handles it |
+|---------|---------------|
+| OAuth flow (sign-in, token refresh) | **You** — use `google_sign_in` or equivalent |
+| Providing an authenticated HTTP client | **You** — wrap with `GoogleAuthClient` or your own |
+| Encryption of sensitive data | **You** — encrypt before sync, decrypt after pull |
+| File format and schema validation | **You** — library treats files as opaque bytes |
+| Retry logic on network failure | **You** — library returns errors in `SyncResult.errors` |
+| Background/periodic sync scheduling | **You** — call `sync()` when appropriate |
+| Google Cloud project setup (OAuth consent, client IDs) | **You** — required for `google_sign_in` to work |
+
+### Library responsibility
+
+| Concern | Who handles it |
+|---------|---------------|
+| Change detection (SHA256) | **Library** |
+| Manifest tracking | **Library** |
+| Conflict resolution | **Library** (configurable strategy) |
+| Google Drive CRUD (list, upload, download, delete) | **Library** (`GoogleDriveAdapter`) |
+| Folder creation on Drive | **Library** (nested paths supported) |
+| Error reporting per file | **Library** (via `SyncResult.errors`) |
+
 ## Permissions
 
 Your app needs:

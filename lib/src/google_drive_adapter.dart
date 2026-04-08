@@ -13,11 +13,9 @@ class GoogleDriveAdapter implements DriveAdapter {
   String? _folderId;
 
   /// Legacy constructor — single folder name.
-  GoogleDriveAdapter({
-    required this.httpClient,
-    required String folderName,
-  })  : folderPath = folderName,
-        _driveApi = drive.DriveApi(httpClient);
+  GoogleDriveAdapter({required this.httpClient, required String folderName})
+    : folderPath = folderName,
+      _driveApi = drive.DriveApi(httpClient);
 
   /// Constructor with explicit nested path.
   GoogleDriveAdapter.withPath({
@@ -43,7 +41,8 @@ class GoogleDriveAdapter implements DriveAdapter {
   /// Find a folder by name under a parent, or create it.
   Future<String> _findOrCreateFolder(String name, String? parentId) async {
     final parentClause = parentId != null ? "'$parentId' in parents and " : '';
-    final query = "${parentClause}name = '$name' and mimeType = 'application/vnd.google-apps.folder' and trashed = false";
+    final query =
+        "${parentClause}name = '$name' and mimeType = 'application/vnd.google-apps.folder' and trashed = false";
     final result = await _driveApi.files.list(q: query, spaces: 'drive');
 
     if (result.files != null && result.files!.isNotEmpty) {
@@ -72,7 +71,8 @@ class GoogleDriveAdapter implements DriveAdapter {
       final response = await _driveApi.files.list(
         q: query,
         spaces: 'drive',
-        $fields: 'nextPageToken, files(id, name, modifiedTime, size, md5Checksum)',
+        $fields:
+            'nextPageToken, files(id, name, modifiedTime, size, md5Checksum)',
         pageToken: pageToken,
       );
 
@@ -94,7 +94,8 @@ class GoogleDriveAdapter implements DriveAdapter {
     await ensureFolder();
 
     // Check if file already exists (update vs create)
-    final query = "name = '$remotePath' and '$_folderId' in parents and trashed = false";
+    final query =
+        "name = '$remotePath' and '$_folderId' in parents and trashed = false";
     final existing = await _driveApi.files.list(q: query, spaces: 'drive');
 
     final media = drive.Media(Stream.value(content), content.length);
@@ -119,7 +120,8 @@ class GoogleDriveAdapter implements DriveAdapter {
   Future<List<int>> downloadFile(String remotePath) async {
     await ensureFolder();
 
-    final query = "name = '$remotePath' and '$_folderId' in parents and trashed = false";
+    final query =
+        "name = '$remotePath' and '$_folderId' in parents and trashed = false";
     final result = await _driveApi.files.list(q: query, spaces: 'drive');
 
     if (result.files == null || result.files!.isEmpty) {
@@ -127,10 +129,12 @@ class GoogleDriveAdapter implements DriveAdapter {
     }
 
     final fileId = result.files!.first.id!;
-    final media = await _driveApi.files.get(
-      fileId,
-      downloadOptions: drive.DownloadOptions.fullMedia,
-    ) as drive.Media;
+    final media =
+        await _driveApi.files.get(
+              fileId,
+              downloadOptions: drive.DownloadOptions.fullMedia,
+            )
+            as drive.Media;
 
     final bytes = <int>[];
     await for (final chunk in media.stream) {
@@ -143,7 +147,8 @@ class GoogleDriveAdapter implements DriveAdapter {
   Future<void> deleteFile(String remotePath) async {
     await ensureFolder();
 
-    final query = "name = '$remotePath' and '$_folderId' in parents and trashed = false";
+    final query =
+        "name = '$remotePath' and '$_folderId' in parents and trashed = false";
     final result = await _driveApi.files.list(q: query, spaces: 'drive');
 
     if (result.files != null && result.files!.isNotEmpty) {

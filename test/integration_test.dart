@@ -18,15 +18,16 @@ class MockDriveAdapter implements DriveAdapter {
   Future<void> ensureFolder() async {}
 
   @override
-  Future<Map<String, RemoteFileInfo>> listFiles() async =>
-      files.map((path, bytes) => MapEntry(
-            path,
-            RemoteFileInfo(
-              path: path,
-              lastModified: timestamps[path] ?? DateTime(2026, 4, 8),
-              sizeBytes: bytes.length,
-            ),
-          ));
+  Future<Map<String, RemoteFileInfo>> listFiles() async => files.map(
+    (path, bytes) => MapEntry(
+      path,
+      RemoteFileInfo(
+        path: path,
+        lastModified: timestamps[path] ?? DateTime(2026, 4, 8),
+        sizeBytes: bytes.length,
+      ),
+    ),
+  );
 
   @override
   Future<void> uploadFile(String remotePath, List<int> content) async {
@@ -36,7 +37,9 @@ class MockDriveAdapter implements DriveAdapter {
 
   @override
   Future<List<int>> downloadFile(String remotePath) async {
-    if (!files.containsKey(remotePath)) throw Exception('Not found: $remotePath');
+    if (!files.containsKey(remotePath)) {
+      throw Exception('Not found: $remotePath');
+    }
     return files[remotePath]!;
   }
 
@@ -79,127 +82,164 @@ class LocalStore {
 
 void main() {
   group('Full sync flow: differ → resolver → engine', () {
-    test('first sync: local has data, remote is empty → push uploads all', () async {
-      final remote = MockDriveAdapter();
-      final local = LocalStore();
-      local.write('tracking/2026-04-08.json', '{"date":"2026-04-08","weight":130}');
-      local.write('tracking/2026-04-09.json', '{"date":"2026-04-09","weight":129}');
-      local.write('profile.json', '{"name":"Ajit"}');
+    test(
+      'first sync: local has data, remote is empty → push uploads all',
+      () async {
+        final remote = MockDriveAdapter();
+        final local = LocalStore();
+        local.write(
+          'tracking/2026-04-08.json',
+          '{"date":"2026-04-08","weight":130}',
+        );
+        local.write(
+          'tracking/2026-04-09.json',
+          '{"date":"2026-04-09","weight":129}',
+        );
+        local.write('profile.json', '{"name":"Ajit"}');
 
-      final engine = SyncEngine(adapter: remote);
-      final result = await engine.sync(
-        localPath: '/data',
-        localManifest: local.toManifest(),
-        direction: SyncDirection.push,
-        readLocalFile: (path) async => local.files[path]!,
-      );
+        final engine = SyncEngine(adapter: remote);
+        final result = await engine.sync(
+          localPath: '/data',
+          localManifest: local.toManifest(),
+          direction: SyncDirection.push,
+          readLocalFile: (path) async => local.files[path]!,
+        );
 
-      expect(result.filesUploaded, 3);
-      expect(result.errors, isEmpty);
-      expect(remote.files.length, 3);
-      expect(utf8.decode(remote.files['profile.json']!), '{"name":"Ajit"}');
-    });
+        expect(result.filesUploaded, 3);
+        expect(result.errors, isEmpty);
+        expect(remote.files.length, 3);
+        expect(utf8.decode(remote.files['profile.json']!), '{"name":"Ajit"}');
+      },
+    );
 
-    test('first sync: remote has plans, local is empty → pull downloads all', () async {
-      final remote = MockDriveAdapter();
-      remote.seed('plans/week01.json', '{"week":1}');
-      remote.seed('plans/week02.json', '{"week":2}');
-      remote.seed('rules.json', '{"phase":1}');
+    test(
+      'first sync: remote has plans, local is empty → pull downloads all',
+      () async {
+        final remote = MockDriveAdapter();
+        remote.seed('plans/week01.json', '{"week":1}');
+        remote.seed('plans/week02.json', '{"week":2}');
+        remote.seed('rules.json', '{"phase":1}');
 
-      final local = LocalStore();
-      final engine = SyncEngine(adapter: remote);
+        final local = LocalStore();
+        final engine = SyncEngine(adapter: remote);
 
-      final result = await engine.sync(
-        localPath: '/data',
-        localManifest: local.toManifest(),
-        direction: SyncDirection.pull,
-        writeLocalFile: (path, content) async => local.files[path] = content,
-      );
+        final result = await engine.sync(
+          localPath: '/data',
+          localManifest: local.toManifest(),
+          direction: SyncDirection.pull,
+          writeLocalFile: (path, content) async => local.files[path] = content,
+        );
 
-      expect(result.filesDownloaded, 3);
-      expect(local.read('plans/week01.json'), '{"week":1}');
-      expect(local.read('rules.json'), '{"phase":1}');
-    });
+        expect(result.filesDownloaded, 3);
+        expect(local.read('plans/week01.json'), '{"week":1}');
+        expect(local.read('rules.json'), '{"phase":1}');
+      },
+    );
 
-    test('bidirectional: local tracking + remote plans sync without conflict', () async {
-      final remote = MockDriveAdapter();
-      remote.seed('plans/week01.json', '{"week":1}');
+    test(
+      'bidirectional: local tracking + remote plans sync without conflict',
+      () async {
+        final remote = MockDriveAdapter();
+        remote.seed('plans/week01.json', '{"week":1}');
 
-      final local = LocalStore();
-      local.write('tracking/2026-04-08.json', '{"date":"2026-04-08"}');
+        final local = LocalStore();
+        local.write('tracking/2026-04-08.json', '{"date":"2026-04-08"}');
 
-      final engine = SyncEngine(adapter: remote);
+        final engine = SyncEngine(adapter: remote);
 
-      final result = await engine.sync(
-        localPath: '/data',
-        localManifest: local.toManifest(),
-        direction: SyncDirection.bidirectional,
-        readLocalFile: (path) async => local.files[path]!,
-        writeLocalFile: (path, content) async => local.files[path] = content,
-      );
+        final result = await engine.sync(
+          localPath: '/data',
+          localManifest: local.toManifest(),
+          direction: SyncDirection.bidirectional,
+          readLocalFile: (path) async => local.files[path]!,
+          writeLocalFile: (path, content) async => local.files[path] = content,
+        );
 
-      // Local tracking pushed to remote
-      expect(result.filesUploaded, 1);
-      expect(remote.files.containsKey('tracking/2026-04-08.json'), true);
-      // Remote plans pulled to local
-      expect(result.filesDownloaded, 1);
-      expect(local.read('plans/week01.json'), '{"week":1}');
-    });
+        // Local tracking pushed to remote
+        expect(result.filesUploaded, 1);
+        expect(remote.files.containsKey('tracking/2026-04-08.json'), true);
+        // Remote plans pulled to local
+        expect(result.filesDownloaded, 1);
+        expect(local.read('plans/week01.json'), '{"week":1}');
+      },
+    );
 
-    test('conflict: same file modified on both sides → newerWins resolves', () async {
-      final remote = MockDriveAdapter();
-      remote.seed('shared.json', '{"v":"remote"}',
-          modified: DateTime(2026, 4, 9, 14, 0)); // newer
+    test(
+      'conflict: same file modified on both sides → newerWins resolves',
+      () async {
+        final remote = MockDriveAdapter();
+        remote.seed(
+          'shared.json',
+          '{"v":"remote"}',
+          modified: DateTime(2026, 4, 9, 14, 0),
+        ); // newer
 
-      final local = LocalStore();
-      local.write('shared.json', '{"v":"local"}',
-          modified: DateTime(2026, 4, 9, 10, 0)); // older
+        final local = LocalStore();
+        local.write(
+          'shared.json',
+          '{"v":"local"}',
+          modified: DateTime(2026, 4, 9, 10, 0),
+        ); // older
 
-      final engine = SyncEngine(
-        adapter: remote,
-        resolver: const ConflictResolver(strategy: ConflictStrategy.newerWins),
-      );
+        final engine = SyncEngine(
+          adapter: remote,
+          resolver: const ConflictResolver(
+            strategy: ConflictStrategy.newerWins,
+          ),
+        );
 
-      final result = await engine.sync(
-        localPath: '/data',
-        localManifest: local.toManifest(),
-        direction: SyncDirection.bidirectional,
-        readLocalFile: (path) async => local.files[path]!,
-        writeLocalFile: (path, content) async => local.files[path] = content,
-      );
+        final result = await engine.sync(
+          localPath: '/data',
+          localManifest: local.toManifest(),
+          direction: SyncDirection.bidirectional,
+          readLocalFile: (path) async => local.files[path]!,
+          writeLocalFile: (path, content) async => local.files[path] = content,
+        );
 
-      // Remote was newer, so local should be overwritten
-      expect(local.read('shared.json'), '{"v":"remote"}');
-      expect(result.filesDownloaded, 1);
-    });
+        // Remote was newer, so local should be overwritten
+        expect(local.read('shared.json'), '{"v":"remote"}');
+        expect(result.filesDownloaded, 1);
+      },
+    );
 
-    test('conflict: same file modified on both sides → localWins keeps local', () async {
-      final remote = MockDriveAdapter();
-      remote.seed('shared.json', '{"v":"remote"}',
-          modified: DateTime(2026, 4, 9, 14, 0)); // newer but doesn't matter
+    test(
+      'conflict: same file modified on both sides → localWins keeps local',
+      () async {
+        final remote = MockDriveAdapter();
+        remote.seed(
+          'shared.json',
+          '{"v":"remote"}',
+          modified: DateTime(2026, 4, 9, 14, 0),
+        ); // newer but doesn't matter
 
-      final local = LocalStore();
-      local.write('shared.json', '{"v":"local"}',
-          modified: DateTime(2026, 4, 9, 10, 0)); // older but local wins
+        final local = LocalStore();
+        local.write(
+          'shared.json',
+          '{"v":"local"}',
+          modified: DateTime(2026, 4, 9, 10, 0),
+        ); // older but local wins
 
-      final engine = SyncEngine(
-        adapter: remote,
-        resolver: const ConflictResolver(strategy: ConflictStrategy.localWins),
-      );
+        final engine = SyncEngine(
+          adapter: remote,
+          resolver: const ConflictResolver(
+            strategy: ConflictStrategy.localWins,
+          ),
+        );
 
-      final result = await engine.sync(
-        localPath: '/data',
-        localManifest: local.toManifest(),
-        direction: SyncDirection.bidirectional,
-        readLocalFile: (path) async => local.files[path]!,
-        writeLocalFile: (path, content) async => local.files[path] = content,
-      );
+        final result = await engine.sync(
+          localPath: '/data',
+          localManifest: local.toManifest(),
+          direction: SyncDirection.bidirectional,
+          readLocalFile: (path) async => local.files[path]!,
+          writeLocalFile: (path, content) async => local.files[path] = content,
+        );
 
-      // Local wins: local stays as-is, remote gets overwritten
-      expect(local.read('shared.json'), '{"v":"local"}');
-      expect(result.filesUploaded, 1);
-      expect(utf8.decode(remote.files['shared.json']!), '{"v":"local"}');
-    });
+        // Local wins: local stays as-is, remote gets overwritten
+        expect(local.read('shared.json'), '{"v":"local"}');
+        expect(result.filesUploaded, 1);
+        expect(utf8.decode(remote.files['shared.json']!), '{"v":"local"}');
+      },
+    );
 
     test('re-sync after no changes → no transfers', () async {
       final remote = MockDriveAdapter();
@@ -244,8 +284,11 @@ void main() {
     test('incremental sync: only changed files transfer', () async {
       final remote = MockDriveAdapter();
       remote.seed('unchanged.json', '{"v":1}');
-      remote.seed('updated_remote.json', '{"v":"old"}',
-          modified: DateTime(2026, 4, 7));
+      remote.seed(
+        'updated_remote.json',
+        '{"v":"old"}',
+        modified: DateTime(2026, 4, 7),
+      );
 
       final local = LocalStore();
       // unchanged.json has same content as remote
@@ -275,15 +318,31 @@ void main() {
       final differ = ManifestDiffer();
       final local = SyncManifest(
         files: {
-          'push_me.json': SyncFileEntry(path: 'push_me.json', sha256: 'a', lastModified: DateTime(2026, 4, 8)),
-          'conflict.json': SyncFileEntry(path: 'conflict.json', sha256: 'local_v', lastModified: DateTime(2026, 4, 8)),
+          'push_me.json': SyncFileEntry(
+            path: 'push_me.json',
+            sha256: 'a',
+            lastModified: DateTime(2026, 4, 8),
+          ),
+          'conflict.json': SyncFileEntry(
+            path: 'conflict.json',
+            sha256: 'local_v',
+            lastModified: DateTime(2026, 4, 8),
+          ),
         },
         lastSynced: DateTime(2026, 4, 7),
       );
       final remoteManifest = SyncManifest(
         files: {
-          'pull_me.json': SyncFileEntry(path: 'pull_me.json', sha256: 'b', lastModified: DateTime(2026, 4, 8)),
-          'conflict.json': SyncFileEntry(path: 'conflict.json', sha256: 'remote_v', lastModified: DateTime(2026, 4, 9)),
+          'pull_me.json': SyncFileEntry(
+            path: 'pull_me.json',
+            sha256: 'b',
+            lastModified: DateTime(2026, 4, 8),
+          ),
+          'conflict.json': SyncFileEntry(
+            path: 'conflict.json',
+            sha256: 'remote_v',
+            lastModified: DateTime(2026, 4, 9),
+          ),
         },
         lastSynced: DateTime(2026, 4, 7),
       );
@@ -291,22 +350,36 @@ void main() {
       // local → remote diff: what local has that remote doesn't
       final pushDiff = differ.diff(local, remoteManifest);
       expect(pushDiff.added, ['push_me.json']); // engine should upload
-      expect(pushDiff.modified, ['conflict.json']); // engine should handle conflict
+      expect(pushDiff.modified, [
+        'conflict.json',
+      ]); // engine should handle conflict
 
       // remote → local diff: what remote has that local doesn't
       final pullDiff = differ.diff(remoteManifest, local);
       expect(pullDiff.added, ['pull_me.json']); // engine should download
-      expect(pullDiff.modified, ['conflict.json']); // same conflict from other side
+      expect(pullDiff.modified, [
+        'conflict.json',
+      ]); // same conflict from other side
     });
 
     test('resolver output feeds correctly into engine file operations', () {
-      final resolver = const ConflictResolver(strategy: ConflictStrategy.newerWins);
+      final resolver = const ConflictResolver(
+        strategy: ConflictStrategy.newerWins,
+      );
 
       // Simulate: local is older, remote is newer
       final conflict = SyncConflict(
         path: 'tracking.json',
-        local: SyncFileEntry(path: 'tracking.json', sha256: 'old', lastModified: DateTime(2026, 4, 8)),
-        remote: SyncFileEntry(path: 'tracking.json', sha256: 'new', lastModified: DateTime(2026, 4, 9)),
+        local: SyncFileEntry(
+          path: 'tracking.json',
+          sha256: 'old',
+          lastModified: DateTime(2026, 4, 8),
+        ),
+        remote: SyncFileEntry(
+          path: 'tracking.json',
+          sha256: 'new',
+          lastModified: DateTime(2026, 4, 9),
+        ),
       );
 
       final resolution = resolver.resolve(conflict);
@@ -335,50 +408,56 @@ void main() {
       expect(remote.files['empty.json'], isEmpty);
     });
 
-    test('files with same content but different paths are independent', () async {
-      final remote = MockDriveAdapter();
-      final local = LocalStore();
-      local.write('a/data.json', '{"same":"content"}');
-      local.write('b/data.json', '{"same":"content"}');
+    test(
+      'files with same content but different paths are independent',
+      () async {
+        final remote = MockDriveAdapter();
+        final local = LocalStore();
+        local.write('a/data.json', '{"same":"content"}');
+        local.write('b/data.json', '{"same":"content"}');
 
-      final engine = SyncEngine(adapter: remote);
-      final result = await engine.sync(
-        localPath: '/data',
-        localManifest: local.toManifest(),
-        direction: SyncDirection.push,
-        readLocalFile: (path) async => local.files[path]!,
-      );
+        final engine = SyncEngine(adapter: remote);
+        final result = await engine.sync(
+          localPath: '/data',
+          localManifest: local.toManifest(),
+          direction: SyncDirection.push,
+          readLocalFile: (path) async => local.files[path]!,
+        );
 
-      expect(result.filesUploaded, 2);
-      expect(remote.files.length, 2);
-    });
+        expect(result.filesUploaded, 2);
+        expect(remote.files.length, 2);
+      },
+    );
 
-    test('unicode content (Telugu/Hindi food names) roundtrips correctly', () async {
-      final remote = MockDriveAdapter();
-      final local = LocalStore();
-      final content = '{"name":"కందిపప్పు","hindi":"तूर दाल","cal":322}';
-      local.write('food.json', content);
+    test(
+      'unicode content (Telugu/Hindi food names) roundtrips correctly',
+      () async {
+        final remote = MockDriveAdapter();
+        final local = LocalStore();
+        final content = '{"name":"కందిపప్పు","hindi":"तूर दाल","cal":322}';
+        local.write('food.json', content);
 
-      final engine = SyncEngine(adapter: remote);
-      await engine.sync(
-        localPath: '/data',
-        localManifest: local.toManifest(),
-        direction: SyncDirection.push,
-        readLocalFile: (path) async => local.files[path]!,
-      );
+        final engine = SyncEngine(adapter: remote);
+        await engine.sync(
+          localPath: '/data',
+          localManifest: local.toManifest(),
+          direction: SyncDirection.push,
+          readLocalFile: (path) async => local.files[path]!,
+        );
 
-      // Pull it back
-      local.files.clear();
-      final pullResult = await engine.sync(
-        localPath: '/data',
-        localManifest: SyncManifest.empty(),
-        direction: SyncDirection.pull,
-        writeLocalFile: (path, bytes) async => local.files[path] = bytes,
-      );
+        // Pull it back
+        local.files.clear();
+        final pullResult = await engine.sync(
+          localPath: '/data',
+          localManifest: SyncManifest.empty(),
+          direction: SyncDirection.pull,
+          writeLocalFile: (path, bytes) async => local.files[path] = bytes,
+        );
 
-      expect(pullResult.filesDownloaded, 1);
-      expect(local.read('food.json'), content);
-    });
+        expect(pullResult.filesDownloaded, 1);
+        expect(local.read('food.json'), content);
+      },
+    );
   });
 }
 
@@ -393,8 +472,12 @@ class _FailingAdapter implements DriveAdapter {
   Future<void> ensureFolder() async {}
 
   @override
-  Future<Map<String, RemoteFileInfo>> listFiles() async =>
-      files.map((k, v) => MapEntry(k, RemoteFileInfo(path: k, lastModified: DateTime(2026, 4, 8))));
+  Future<Map<String, RemoteFileInfo>> listFiles() async => files.map(
+    (k, v) => MapEntry(
+      k,
+      RemoteFileInfo(path: k, lastModified: DateTime(2026, 4, 8)),
+    ),
+  );
 
   @override
   Future<void> uploadFile(String path, List<int> content) async {

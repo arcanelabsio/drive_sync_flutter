@@ -17,14 +17,16 @@ class MockDriveAdapter implements DriveAdapter {
 
   @override
   Future<Map<String, RemoteFileInfo>> listFiles() async {
-    return files.map((path, bytes) => MapEntry(
-          path,
-          RemoteFileInfo(
-            path: path,
-            lastModified: timestamps[path] ?? DateTime(2026, 4, 8),
-            sizeBytes: bytes.length,
-          ),
-        ));
+    return files.map(
+      (path, bytes) => MapEntry(
+        path,
+        RemoteFileInfo(
+          path: path,
+          lastModified: timestamps[path] ?? DateTime(2026, 4, 8),
+          sizeBytes: bytes.length,
+        ),
+      ),
+    );
   }
 
   @override
@@ -35,7 +37,9 @@ class MockDriveAdapter implements DriveAdapter {
 
   @override
   Future<List<int>> downloadFile(String remotePath) async {
-    if (!files.containsKey(remotePath)) throw Exception('Not found: $remotePath');
+    if (!files.containsKey(remotePath)) {
+      throw Exception('Not found: $remotePath');
+    }
     return files[remotePath]!;
   }
 
@@ -54,7 +58,11 @@ void main() {
 
       final localManifest = SyncManifest(
         files: {
-          'a.json': SyncFileEntry(path: 'a.json', sha256: 'aaa', lastModified: DateTime(2026, 4, 8)),
+          'a.json': SyncFileEntry(
+            path: 'a.json',
+            sha256: 'aaa',
+            lastModified: DateTime(2026, 4, 8),
+          ),
         },
         lastSynced: DateTime(2026, 4, 7),
       );
