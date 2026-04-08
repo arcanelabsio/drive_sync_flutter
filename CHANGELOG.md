@@ -1,3 +1,8 @@
+## 1.0.1
+
+- Enable automated publishing from GitHub Actions via OIDC
+- Verify CI → pub.dev pipeline
+
 ## 1.0.0
 
 - Bidirectional file sync between device storage and Google Drive
