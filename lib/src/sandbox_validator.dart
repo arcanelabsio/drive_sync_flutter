@@ -41,13 +41,25 @@ class SandboxValidator {
     final segments = subPath.split('/');
     for (final segment in segments) {
       if (segment.isEmpty) {
-        throw ArgumentError.value(subPath, 'subPath', 'must not contain empty segments (double slashes)');
+        throw ArgumentError.value(
+          subPath,
+          'subPath',
+          'must not contain empty segments (double slashes)',
+        );
       }
       if (segment == '..') {
-        throw ArgumentError.value(subPath, 'subPath', 'must not contain path traversal (..)');
+        throw ArgumentError.value(
+          subPath,
+          'subPath',
+          'must not contain path traversal (..)',
+        );
       }
       if (segment == '.') {
-        throw ArgumentError.value(subPath, 'subPath', 'must not contain current-directory references (.)');
+        throw ArgumentError.value(
+          subPath,
+          'subPath',
+          'must not contain current-directory references (.)',
+        );
       }
     }
   }

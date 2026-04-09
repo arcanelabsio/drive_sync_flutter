@@ -62,35 +62,50 @@ void main() {
 
     test('rejects uppercase appName', () {
       expect(
-        () => GoogleDriveAdapter.sandboxed(httpClient: mockClient, appName: 'MyApp'),
+        () => GoogleDriveAdapter.sandboxed(
+          httpClient: mockClient,
+          appName: 'MyApp',
+        ),
         throwsArgumentError,
       );
     });
 
     test('rejects appName with path traversal', () {
       expect(
-        () => GoogleDriveAdapter.sandboxed(httpClient: mockClient, appName: '../traversal'),
+        () => GoogleDriveAdapter.sandboxed(
+          httpClient: mockClient,
+          appName: '../traversal',
+        ),
         throwsArgumentError,
       );
     });
 
     test('rejects appName with slashes', () {
       expect(
-        () => GoogleDriveAdapter.sandboxed(httpClient: mockClient, appName: 'app/hack'),
+        () => GoogleDriveAdapter.sandboxed(
+          httpClient: mockClient,
+          appName: 'app/hack',
+        ),
         throwsArgumentError,
       );
     });
 
     test('rejects appName with hyphens', () {
       expect(
-        () => GoogleDriveAdapter.sandboxed(httpClient: mockClient, appName: 'my-app'),
+        () => GoogleDriveAdapter.sandboxed(
+          httpClient: mockClient,
+          appName: 'my-app',
+        ),
         throwsArgumentError,
       );
     });
 
     test('rejects appName starting with digit', () {
       expect(
-        () => GoogleDriveAdapter.sandboxed(httpClient: mockClient, appName: '123app'),
+        () => GoogleDriveAdapter.sandboxed(
+          httpClient: mockClient,
+          appName: '123app',
+        ),
         throwsArgumentError,
       );
     });
@@ -155,7 +170,10 @@ void main() {
       // All traversal attempts in appName are caught by validation
       for (final attack in ['..', '../..', 'a/..', '.', '../root']) {
         expect(
-          () => GoogleDriveAdapter.sandboxed(httpClient: mockClient, appName: attack),
+          () => GoogleDriveAdapter.sandboxed(
+            httpClient: mockClient,
+            appName: attack,
+          ),
           throwsArgumentError,
           reason: 'appName "$attack" should be rejected',
         );

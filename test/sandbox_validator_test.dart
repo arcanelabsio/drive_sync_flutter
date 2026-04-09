@@ -4,7 +4,10 @@ import 'package:drive_sync_flutter/drive_sync_flutter.dart';
 void main() {
   group('SandboxValidator.validateAppName', () {
     test('accepts valid lowercase snake_case names', () {
-      expect(() => SandboxValidator.validateAppName('longeviti'), returnsNormally);
+      expect(
+        () => SandboxValidator.validateAppName('longeviti'),
+        returnsNormally,
+      );
       expect(() => SandboxValidator.validateAppName('my_app'), returnsNormally);
       expect(() => SandboxValidator.validateAppName('app123'), returnsNormally);
       expect(() => SandboxValidator.validateAppName('a'), returnsNormally);
@@ -15,42 +18,81 @@ void main() {
     });
 
     test('rejects uppercase', () {
-      expect(() => SandboxValidator.validateAppName('MyApp'), throwsArgumentError);
-      expect(() => SandboxValidator.validateAppName('MYAPP'), throwsArgumentError);
-      expect(() => SandboxValidator.validateAppName('myApp'), throwsArgumentError);
+      expect(
+        () => SandboxValidator.validateAppName('MyApp'),
+        throwsArgumentError,
+      );
+      expect(
+        () => SandboxValidator.validateAppName('MYAPP'),
+        throwsArgumentError,
+      );
+      expect(
+        () => SandboxValidator.validateAppName('myApp'),
+        throwsArgumentError,
+      );
     });
 
     test('rejects hyphens', () {
-      expect(() => SandboxValidator.validateAppName('my-app'), throwsArgumentError);
+      expect(
+        () => SandboxValidator.validateAppName('my-app'),
+        throwsArgumentError,
+      );
     });
 
     test('rejects spaces', () {
-      expect(() => SandboxValidator.validateAppName('my app'), throwsArgumentError);
+      expect(
+        () => SandboxValidator.validateAppName('my app'),
+        throwsArgumentError,
+      );
       expect(() => SandboxValidator.validateAppName(' '), throwsArgumentError);
     });
 
     test('rejects path traversal', () {
       expect(() => SandboxValidator.validateAppName('..'), throwsArgumentError);
-      expect(() => SandboxValidator.validateAppName('../hack'), throwsArgumentError);
+      expect(
+        () => SandboxValidator.validateAppName('../hack'),
+        throwsArgumentError,
+      );
     });
 
     test('rejects slashes', () {
-      expect(() => SandboxValidator.validateAppName('app/sub'), throwsArgumentError);
+      expect(
+        () => SandboxValidator.validateAppName('app/sub'),
+        throwsArgumentError,
+      );
     });
 
     test('rejects names starting with digit', () {
-      expect(() => SandboxValidator.validateAppName('123abc'), throwsArgumentError);
-      expect(() => SandboxValidator.validateAppName('1app'), throwsArgumentError);
+      expect(
+        () => SandboxValidator.validateAppName('123abc'),
+        throwsArgumentError,
+      );
+      expect(
+        () => SandboxValidator.validateAppName('1app'),
+        throwsArgumentError,
+      );
     });
 
     test('rejects names starting with underscore', () {
-      expect(() => SandboxValidator.validateAppName('_app'), throwsArgumentError);
+      expect(
+        () => SandboxValidator.validateAppName('_app'),
+        throwsArgumentError,
+      );
     });
 
     test('rejects special characters', () {
-      expect(() => SandboxValidator.validateAppName("app'name"), throwsArgumentError);
-      expect(() => SandboxValidator.validateAppName('app"name'), throwsArgumentError);
-      expect(() => SandboxValidator.validateAppName('app@name'), throwsArgumentError);
+      expect(
+        () => SandboxValidator.validateAppName("app'name"),
+        throwsArgumentError,
+      );
+      expect(
+        () => SandboxValidator.validateAppName('app"name'),
+        throwsArgumentError,
+      );
+      expect(
+        () => SandboxValidator.validateAppName('app@name'),
+        throwsArgumentError,
+      );
     });
   });
 
@@ -62,30 +104,57 @@ void main() {
 
     test('accepts valid paths', () {
       expect(() => SandboxValidator.validateSubPath('Plans'), returnsNormally);
-      expect(() => SandboxValidator.validateSubPath('Backups'), returnsNormally);
-      expect(() => SandboxValidator.validateSubPath('deep/nested/path'), returnsNormally);
-      expect(() => SandboxValidator.validateSubPath('Longevity Plans'), returnsNormally);
+      expect(
+        () => SandboxValidator.validateSubPath('Backups'),
+        returnsNormally,
+      );
+      expect(
+        () => SandboxValidator.validateSubPath('deep/nested/path'),
+        returnsNormally,
+      );
+      expect(
+        () => SandboxValidator.validateSubPath('Longevity Plans'),
+        returnsNormally,
+      );
     });
 
     test('rejects path traversal', () {
       expect(() => SandboxValidator.validateSubPath('..'), throwsArgumentError);
-      expect(() => SandboxValidator.validateSubPath('../etc'), throwsArgumentError);
-      expect(() => SandboxValidator.validateSubPath('a/../b'), throwsArgumentError);
-      expect(() => SandboxValidator.validateSubPath('a/../../root'), throwsArgumentError);
+      expect(
+        () => SandboxValidator.validateSubPath('../etc'),
+        throwsArgumentError,
+      );
+      expect(
+        () => SandboxValidator.validateSubPath('a/../b'),
+        throwsArgumentError,
+      );
+      expect(
+        () => SandboxValidator.validateSubPath('a/../../root'),
+        throwsArgumentError,
+      );
     });
 
     test('rejects absolute paths', () {
-      expect(() => SandboxValidator.validateSubPath('/absolute'), throwsArgumentError);
+      expect(
+        () => SandboxValidator.validateSubPath('/absolute'),
+        throwsArgumentError,
+      );
       expect(() => SandboxValidator.validateSubPath('/'), throwsArgumentError);
     });
 
     test('rejects empty segments (double slashes)', () {
-      expect(() => SandboxValidator.validateSubPath('a//b'), throwsArgumentError);
+      expect(
+        () => SandboxValidator.validateSubPath('a//b'),
+        throwsArgumentError,
+      );
     });
 
     test('rejects dot segments', () {
       expect(() => SandboxValidator.validateSubPath('.'), throwsArgumentError);
-      expect(() => SandboxValidator.validateSubPath('a/./b'), throwsArgumentError);
+      expect(
+        () => SandboxValidator.validateSubPath('a/./b'),
+        throwsArgumentError,
+      );
     });
   });
 
@@ -96,17 +165,32 @@ void main() {
     });
 
     test('builds path with subPath', () {
-      expect(SandboxValidator.buildSandboxPath('my_app', 'Plans'), '.app/my_app/Plans');
-      expect(SandboxValidator.buildSandboxPath('my_app', 'deep/nested'), '.app/my_app/deep/nested');
+      expect(
+        SandboxValidator.buildSandboxPath('my_app', 'Plans'),
+        '.app/my_app/Plans',
+      );
+      expect(
+        SandboxValidator.buildSandboxPath('my_app', 'deep/nested'),
+        '.app/my_app/deep/nested',
+      );
     });
 
     test('validates appName during build', () {
-      expect(() => SandboxValidator.buildSandboxPath('', null), throwsArgumentError);
-      expect(() => SandboxValidator.buildSandboxPath('BadName', null), throwsArgumentError);
+      expect(
+        () => SandboxValidator.buildSandboxPath('', null),
+        throwsArgumentError,
+      );
+      expect(
+        () => SandboxValidator.buildSandboxPath('BadName', null),
+        throwsArgumentError,
+      );
     });
 
     test('validates subPath during build', () {
-      expect(() => SandboxValidator.buildSandboxPath('app', '../etc'), throwsArgumentError);
+      expect(
+        () => SandboxValidator.buildSandboxPath('app', '../etc'),
+        throwsArgumentError,
+      );
     });
   });
 

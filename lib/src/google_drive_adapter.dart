@@ -27,13 +27,17 @@ class GoogleDriveAdapter implements DriveAdapter {
        _driveApi = drive.DriveApi(httpClient);
 
   /// Legacy constructor — single folder name, no sandboxing.
-  @Deprecated('Use GoogleDriveAdapter.sandboxed() for safe, sandboxed Drive access')
+  @Deprecated(
+    'Use GoogleDriveAdapter.sandboxed() for safe, sandboxed Drive access',
+  )
   GoogleDriveAdapter({required this.httpClient, required String folderName})
     : folderPath = folderName,
       _driveApi = drive.DriveApi(httpClient);
 
   /// Constructor with explicit nested path, no sandboxing.
-  @Deprecated('Use GoogleDriveAdapter.sandboxed() for safe, sandboxed Drive access')
+  @Deprecated(
+    'Use GoogleDriveAdapter.sandboxed() for safe, sandboxed Drive access',
+  )
   GoogleDriveAdapter.withPath({
     required this.httpClient,
     required this.folderPath,
