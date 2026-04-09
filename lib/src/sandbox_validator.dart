@@ -2,6 +2,7 @@
 ///
 /// Enforces that all Drive operations are scoped under `.app/{appName}/`.
 /// Prevents path traversal, query injection, and invalid app names.
+library;
 
 class SandboxValidator {
   SandboxValidator._();
