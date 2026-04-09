@@ -1,3 +1,8 @@
+## 1.1.1
+
+- Fix dart format compliance for pub.dev CI
+- Fix dangling library doc comment lint
+
 ## 1.1.0
 
 - **Sandboxed Drive access**: New `GoogleDriveAdapter.sandboxed()` constructor scopes all operations under `.app/{appName}/`. App name must be lowercase snake_case.
