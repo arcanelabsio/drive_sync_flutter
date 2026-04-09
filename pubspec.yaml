@@ -2,7 +2,7 @@ name: drive_sync_flutter
 description: >-
   Bidirectional file sync between device storage and Google Drive.
   SHA256-based change detection, pluggable conflict resolution, nested folder support.
-version: 1.0.1
+version: 1.1.0
 repository: https://github.com/ajitgunturi/drive_sync_flutter
 issue_tracker: https://github.com/ajitgunturi/drive_sync_flutter/issues
 topics:

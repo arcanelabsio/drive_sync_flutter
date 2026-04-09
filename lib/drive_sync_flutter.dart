@@ -1,15 +1,15 @@
 /// Bidirectional file sync between device storage and Google Drive.
 ///
 /// Provides SHA256-based change detection, pluggable conflict resolution,
-/// and nested folder support for Google Drive.
+/// and sandboxed folder access scoped to `.app/{appName}/`.
 ///
 /// ```dart
 /// import 'package:drive_sync_flutter/drive_sync_flutter.dart';
 ///
-/// final authClient = GoogleAuthClient(await account.authHeaders);
-/// final adapter = GoogleDriveAdapter.withPath(
+/// final adapter = GoogleDriveAdapter.sandboxed(
 ///   httpClient: authClient,
-///   folderPath: 'apps/myapp/data',
+///   appName: 'my_app',
+///   subPath: 'Backups',
 /// );
 /// final client = DriveSyncClient(adapter: adapter);
 /// final result = await client.sync(localPath: '/path/to/data');
@@ -20,6 +20,7 @@ export 'src/models.dart';
 export 'src/drive_adapter.dart';
 export 'src/google_drive_adapter.dart';
 export 'src/google_auth_client.dart';
+export 'src/sandbox_validator.dart';
 export 'src/manifest_differ.dart';
 export 'src/conflict_resolver.dart';
 export 'src/sync_engine.dart';

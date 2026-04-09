@@ -1,23 +1,39 @@
 import 'package:googleapis/drive/v3.dart' as drive;
 import 'package:http/http.dart' as http;
 import 'drive_adapter.dart';
+import 'sandbox_validator.dart';
 
 /// Google Drive implementation of [DriveAdapter].
 ///
-/// Supports nested folder paths like `apps-data/Longeviti/Longevity Plans`.
-/// Creates the full folder hierarchy if it doesn't exist.
+/// Use [GoogleDriveAdapter.sandboxed] (recommended) to create an adapter
+/// scoped to `.app/{appName}/{subPath}` on the user's Drive.
 class GoogleDriveAdapter implements DriveAdapter {
   final http.Client httpClient;
-  final String folderPath; // e.g. "apps-data/Longeviti/Longevity Plans"
+  final String folderPath;
   final drive.DriveApi _driveApi;
   String? _folderId;
 
-  /// Legacy constructor — single folder name.
+  /// Create an adapter sandboxed under `.app/{appName}/{subPath}`.
+  ///
+  /// [appName] must be lowercase snake_case (e.g., `'longeviti'`, `'my_app'`).
+  /// [subPath] is optional (e.g., `'Plans'`, `'Backups'`). Must not contain `..`.
+  ///
+  /// The resulting Drive folder path is `.app/{appName}` or `.app/{appName}/{subPath}`.
+  GoogleDriveAdapter.sandboxed({
+    required this.httpClient,
+    required String appName,
+    String? subPath,
+  }) : folderPath = SandboxValidator.buildSandboxPath(appName, subPath),
+       _driveApi = drive.DriveApi(httpClient);
+
+  /// Legacy constructor — single folder name, no sandboxing.
+  @Deprecated('Use GoogleDriveAdapter.sandboxed() for safe, sandboxed Drive access')
   GoogleDriveAdapter({required this.httpClient, required String folderName})
     : folderPath = folderName,
       _driveApi = drive.DriveApi(httpClient);
 
-  /// Constructor with explicit nested path.
+  /// Constructor with explicit nested path, no sandboxing.
+  @Deprecated('Use GoogleDriveAdapter.sandboxed() for safe, sandboxed Drive access')
   GoogleDriveAdapter.withPath({
     required this.httpClient,
     required this.folderPath,
@@ -28,7 +44,7 @@ class GoogleDriveAdapter implements DriveAdapter {
     if (_folderId != null) return;
 
     final segments = folderPath.split('/').where((s) => s.isNotEmpty).toList();
-    String? parentId; // null = root of Drive
+    String? parentId;
 
     for (final segment in segments) {
       final folderId = await _findOrCreateFolder(segment, parentId);
@@ -38,18 +54,17 @@ class GoogleDriveAdapter implements DriveAdapter {
     _folderId = parentId;
   }
 
-  /// Find a folder by name under a parent, or create it.
   Future<String> _findOrCreateFolder(String name, String? parentId) async {
+    final escapedName = SandboxValidator.escapeDriveQuery(name);
     final parentClause = parentId != null ? "'$parentId' in parents and " : '';
     final query =
-        "${parentClause}name = '$name' and mimeType = 'application/vnd.google-apps.folder' and trashed = false";
+        "${parentClause}name = '$escapedName' and mimeType = 'application/vnd.google-apps.folder' and trashed = false";
     final result = await _driveApi.files.list(q: query, spaces: 'drive');
 
     if (result.files != null && result.files!.isNotEmpty) {
       return result.files!.first.id!;
     }
 
-    // Create folder
     final folder = drive.File()
       ..name = name
       ..mimeType = 'application/vnd.google-apps.folder';
@@ -93,22 +108,20 @@ class GoogleDriveAdapter implements DriveAdapter {
   Future<void> uploadFile(String remotePath, List<int> content) async {
     await ensureFolder();
 
-    // Check if file already exists (update vs create)
+    final escapedPath = SandboxValidator.escapeDriveQuery(remotePath);
     final query =
-        "name = '$remotePath' and '$_folderId' in parents and trashed = false";
+        "name = '$escapedPath' and '$_folderId' in parents and trashed = false";
     final existing = await _driveApi.files.list(q: query, spaces: 'drive');
 
     final media = drive.Media(Stream.value(content), content.length);
 
     if (existing.files != null && existing.files!.isNotEmpty) {
-      // Update existing file
       await _driveApi.files.update(
         drive.File(),
         existing.files!.first.id!,
         uploadMedia: media,
       );
     } else {
-      // Create new file
       final file = drive.File()
         ..name = remotePath
         ..parents = [_folderId!];
@@ -120,8 +133,9 @@ class GoogleDriveAdapter implements DriveAdapter {
   Future<List<int>> downloadFile(String remotePath) async {
     await ensureFolder();
 
+    final escapedPath = SandboxValidator.escapeDriveQuery(remotePath);
     final query =
-        "name = '$remotePath' and '$_folderId' in parents and trashed = false";
+        "name = '$escapedPath' and '$_folderId' in parents and trashed = false";
     final result = await _driveApi.files.list(q: query, spaces: 'drive');
 
     if (result.files == null || result.files!.isEmpty) {
@@ -147,8 +161,9 @@ class GoogleDriveAdapter implements DriveAdapter {
   Future<void> deleteFile(String remotePath) async {
     await ensureFolder();
 
+    final escapedPath = SandboxValidator.escapeDriveQuery(remotePath);
     final query =
-        "name = '$remotePath' and '$_folderId' in parents and trashed = false";
+        "name = '$escapedPath' and '$_folderId' in parents and trashed = false";
     final result = await _driveApi.files.list(q: query, spaces: 'drive');
 
     if (result.files != null && result.files!.isNotEmpty) {
