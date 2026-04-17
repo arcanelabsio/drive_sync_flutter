@@ -1,7 +1,10 @@
 /// Path sandboxing and validation for Google Drive operations.
 ///
-/// Enforces that all Drive operations are scoped under `.app/{appName}/`.
-/// Prevents path traversal, query injection, and invalid app names.
+/// Two levels of validation:
+/// - **Structural** (always on): rejects `..`, absolute paths, empty segments,
+///   and escapes query strings. Applies in every mode.
+/// - **App-name convention** (used by [GoogleDriveAdapter.sandboxed]): enforces
+///   lowercase snake_case for the app namespace segment.
 library;
 
 class SandboxValidator {
@@ -33,40 +36,89 @@ class SandboxValidator {
   /// Invalid: `'../etc'`, `'/absolute'`, `'a//b'`, `'a/../../root'`
   static void validateSubPath(String? subPath) {
     if (subPath == null || subPath.isEmpty) return;
+    _validatePathShape(subPath, 'subPath');
+  }
 
-    if (subPath.startsWith('/')) {
-      throw ArgumentError.value(subPath, 'subPath', 'must not start with /');
+  /// Validate an arbitrary Drive base path — used when the caller supplies
+  /// their own prefix (e.g., `.app/longeviti` or `Longeviti/data` or `MyApp`).
+  ///
+  /// Rejects traversal, absolute paths, empty segments, trailing slashes.
+  /// Does NOT enforce any naming convention — segments can contain spaces,
+  /// uppercase, hyphens. Only structural safety is enforced.
+  ///
+  /// Valid: `'MyApp'`, `'.app/longeviti'`, `'Longeviti/data'`, `'folder-name'`
+  /// Invalid: `''`, `'/abs'`, `'a/..'`, `'a//b'`, `'a/./b'`, `'path/'`
+  static void validateBasePath(String basePath) {
+    if (basePath.isEmpty) {
+      throw ArgumentError.value(basePath, 'basePath', 'must not be empty');
+    }
+    _validatePathShape(basePath, 'basePath');
+  }
+
+  /// Validate a single folder name (no slashes, no traversal).
+  ///
+  /// Used by modes that take a single folder name rather than a multi-segment
+  /// path (e.g., `GoogleDriveAdapter.appFiles(folderName:)`).
+  static void validateFolderName(String folderName) {
+    if (folderName.isEmpty) {
+      throw ArgumentError.value(folderName, 'folderName', 'must not be empty');
+    }
+    if (folderName.contains('/')) {
+      throw ArgumentError.value(
+        folderName,
+        'folderName',
+        'must not contain slashes — use subPath for nested folders',
+      );
+    }
+    if (folderName == '.' || folderName == '..') {
+      throw ArgumentError.value(
+        folderName,
+        'folderName',
+        'must not be "." or ".."',
+      );
+    }
+  }
+
+  static void _validatePathShape(String path, String name) {
+    if (path.startsWith('/')) {
+      throw ArgumentError.value(path, name, 'must not start with /');
+    }
+    if (path.endsWith('/')) {
+      throw ArgumentError.value(path, name, 'must not end with /');
     }
 
-    final segments = subPath.split('/');
+    final segments = path.split('/');
     for (final segment in segments) {
       if (segment.isEmpty) {
         throw ArgumentError.value(
-          subPath,
-          'subPath',
+          path,
+          name,
           'must not contain empty segments (double slashes)',
         );
       }
       if (segment == '..') {
         throw ArgumentError.value(
-          subPath,
-          'subPath',
+          path,
+          name,
           'must not contain path traversal (..)',
         );
       }
       if (segment == '.') {
         throw ArgumentError.value(
-          subPath,
-          'subPath',
+          path,
+          name,
           'must not contain current-directory references (.)',
         );
       }
     }
   }
 
-  /// Build the sandboxed Drive folder path: `.app/{appName}` or `.app/{appName}/{subPath}`.
+  /// Build the sandboxed Drive folder path: `.app/{appName}` or
+  /// `.app/{appName}/{subPath}`.
   ///
-  /// Validates both arguments before building.
+  /// Validates both arguments before building. Kept for backward compatibility
+  /// with [GoogleDriveAdapter.sandboxed]. New code should use
+  /// [joinBasePath] with an explicit prefix.
   static String buildSandboxPath(String appName, String? subPath) {
     validateAppName(appName);
     validateSubPath(subPath);
@@ -75,6 +127,17 @@ class SandboxValidator {
       return '.app/$appName/$subPath';
     }
     return '.app/$appName';
+  }
+
+  /// Join a validated base path and an optional sub-path.
+  ///
+  /// Both components are validated. Returns `basePath` if `subPath` is
+  /// null/empty, otherwise `'basePath/subPath'`.
+  static String joinBasePath(String basePath, String? subPath) {
+    validateBasePath(basePath);
+    validateSubPath(subPath);
+    if (subPath == null || subPath.isEmpty) return basePath;
+    return '$basePath/$subPath';
   }
 
   /// Escape a value for use in Google Drive API query strings.
