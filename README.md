@@ -19,7 +19,7 @@ Bidirectional file sync between device storage and Google Drive, with conflict r
 dependencies:
   drive_sync_flutter:
     git:
-      url: https://github.com/ajitgunturi/drive_sync_flutter.git
+      url: https://github.com/arcanelabsio/drive_sync_flutter.git
 ```
 
 ## Quick Start
