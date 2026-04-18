@@ -1,5 +1,11 @@
 # drive_sync_flutter
 
+> **⚠️ Frozen at 1.2.0.** Development has moved to [`cloud_sync`](https://github.com/arcanelabsio/cloud_sync) — a storage-agnostic monorepo that splits this library into a backend-free core ([`cloud_sync_core`](https://pub.dev/packages/cloud_sync_core)) plus per-backend adapters for Google Drive ([`cloud_sync_drive`](https://pub.dev/packages/cloud_sync_drive)), AWS S3 ([`cloud_sync_s3`](https://pub.dev/packages/cloud_sync_s3)), and Box ([`cloud_sync_box`](https://pub.dev/packages/cloud_sync_box)).
+>
+> Existing installations keep working — this package continues to build and publish at 1.2.0 and its on-disk `_sync_manifest.json` is readable by `cloud_sync_core` without migration. For new projects and continued maintenance, use `cloud_sync_drive`. See the [migration guide](https://github.com/arcanelabsio/cloud_sync#migration-from-drive_sync_flutter) for the rename table.
+
+---
+
 Bidirectional file sync between device storage and Google Drive, with conflict resolution.
 
 ## Features
